@@ -1,0 +1,26 @@
+{
+  "name": "setup-edm-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for installing EDM",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enthought/setup-edm-action"
+  },
+  "keywords": [
+    "actions",
+    "edm",
+    "enthought",
+    "setup"
+  ],
+  "author": "Enthought Inc.",
+  "license": "BSD",
+  "dependencies": {
+    "@actions/core": "^1.2.6",
+    "@actions/exec": "^1.0.4",
+    "expand-tilde": "^2.0.2"
+  }
+}
