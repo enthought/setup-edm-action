@@ -1770,27 +1770,29 @@ const fs = __webpack_require__(747)
 const path = __webpack_require__(622)
 const expandTilde = __webpack_require__(154)
 
+// EDM Version, e.g. '3.1.1'
 const edmVersion = core.getInput('edm-version', { required: true });
+
+// Directory path for storing downloaded installer
 const downloadDir = expandTilde(
     path.normalize(core.getInput('download-directory', { required: true }))
 );
 
 async function main() {
+    // Main function to be run when the action is invoked.
 
-    // Make the download directory
+    // Create the download directory.
     core.info(
         "Using directory for storing downloaded installer: " + downloadDir
     )
     fs.mkdirSync(downloadDir, {recursive: true})
 
-    // We may convert the script into JS.
     try {
 
         if (process.platform == "linux") {
             installEdmLinux()
         } else if (process.platform == "darwin") {
             installEdmOSX()
-
         } else if (process.platform == "win32") {
             installEdmWindows()
         } else {
@@ -1804,7 +1806,8 @@ async function main() {
 
 
 async function installEdmLinux() {
-    // Install EDM for Linux
+    // Install EDM for Linux and export the PATH such that edm can
+    // be used directly in GitHub Actions workflows.
     await exec.exec(
         "bash",
         [__webpack_require__.ab + "install-edm-linux.sh", edmVersion, downloadDir]
@@ -1833,7 +1836,8 @@ async function installEdmOSX() {
 
 
 async function installEdmWindows() {
-    // Install EDM for Windows
+    // Install EDM for Windowsand export the PATH such that edm can
+    // be used directly in GitHub Actions workflows.
     await exec.exec(
         __webpack_require__.ab + "install-edm-windows.cmd",
         [edmVersion, downloadDir]

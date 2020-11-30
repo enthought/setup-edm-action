@@ -19,8 +19,7 @@ Directory `dist` contains automatically compiled modules for distribution.
 ```
 npm install
 npm i -g @vercel/ncc
-rm -rf dist
-ncc build src/index.js --license licenses.txt
+npm run -s build
 ```
 
 You'll see changes in the `dist` directory.

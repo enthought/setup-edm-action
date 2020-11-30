@@ -4,7 +4,7 @@
   "description": "GitHub Action for installing EDM",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "ncc build src/index.js --license licenses.txt -o build && rm -rf dist && mv build dist"
   },
   "repository": {
     "type": "git",
