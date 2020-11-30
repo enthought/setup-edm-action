@@ -28,3 +28,8 @@ You'll see changes in the `dist` directory.
 
 There is a workflow in this repository for testing the action. Open a pull
 request to see it run on GitHub Actions.
+
+## Merging Pull Requests
+
+You should always recompile the action and commit changes to ``dist`` prior to
+merging a PR.
