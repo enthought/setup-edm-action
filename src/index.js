@@ -1,4 +1,4 @@
-// (C) Copyright 2018-2020 Enthought, Inc., Austin, TX
+// (C) Copyright 2020 Enthought, Inc., Austin, TX
 // All rights reserved.
 //
 // This software is provided without warranty under the terms of the BSD
@@ -80,7 +80,7 @@ async function installEdmOSX() {
 
 
 async function installEdmWindows() {
-    // Install EDM for Windowsand export the PATH such that edm can
+    // Install EDM for Windows and export the PATH such that edm can
     // be used directly in GitHub Actions workflows.
     await exec.exec(
         path.join(__dirname, "install-edm-windows.cmd"),
