@@ -19,7 +19,7 @@
   "author": "Enthought Inc.",
   "license": "BSD",
   "dependencies": {
-    "@actions/core": "^1.2.6",
+    "@actions/core": "^1.10.0",
     "@actions/exec": "^1.0.4",
     "expand-tilde": "^2.0.2"
   }
