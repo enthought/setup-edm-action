@@ -1,4 +1,4 @@
-# (C) Copyright 2020 Enthought, Inc., Austin, TX
+# (C) Copyright 2020-2022 Enthought, Inc., Austin, TX
 
 # All rights reserved.
 #
@@ -26,5 +26,5 @@ inputs:
     default: ~/.cache/download
 
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'
