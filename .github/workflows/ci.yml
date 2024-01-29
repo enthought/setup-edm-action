@@ -9,10 +9,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install EDM
         uses: ./
         with:
-          edm-version: 3.1.1
+          edm-version: 3.7.0
       - name: Show EDM versions
         run: edm versions
