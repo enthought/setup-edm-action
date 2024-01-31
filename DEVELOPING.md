@@ -7,7 +7,7 @@ The steps follow closely [GitHub documentation on creating a JavaScript action](
 The requirements are:
 
 - Git
-- Node.js (version 16)
+- Node.js (version 20)
 
 ## Directory structure
 

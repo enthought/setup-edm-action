@@ -14,7 +14,7 @@ const fs = require('fs')
 const path = require('path')
 const expandTilde = require('expand-tilde')
 
-// EDM Version, e.g. '3.1.1'
+// EDM Version, e.g. '3.7.0'
 const edmVersion = core.getInput('edm-version', { required: true });
 
 // Directory path for storing downloaded installer
