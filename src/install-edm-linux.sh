@@ -22,12 +22,20 @@ INSTALL_EDM_VERSION=$1
 DOWNLOAD_DIR=$2
 
 install_edm() {
+    local EDM_MAJOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+)\..*/\1/')"
     local EDM_MAJOR_MINOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+\.[[:digit:]]+)\..*/\1/')"
     local EDM_PACKAGE="edm_cli_${INSTALL_EDM_VERSION}_linux_x86_64.sh"
     local EDM_INSTALLER_PATH="${DOWNLOAD_DIR}/${EDM_PACKAGE}"
 
+    # Use rh8 for version 4.0.0 and later, otherwise use rh6
+    if [ "$EDM_MAJOR" -gt "3" ]; then
+        local EDM_URL="https://package-data.enthought.com/edm/rh8_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+    else
+        local EDM_URL="https://package-data.enthought.com/edm/rh6_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+    fi
+
     if [ ! -e "$EDM_INSTALLER_PATH" ]; then
-        curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "https://package-data.enthought.com/edm/rh6_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+        curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "$EDM_URL"
     fi
 
     bash "$EDM_INSTALLER_PATH" -b -p "${HOME}/edm"
