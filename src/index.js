@@ -50,11 +50,19 @@ async function main() {
 
 
 async function installEdmLinux() {
+
+    const options = {};
+    options.listeners = {
+      stdout: (data) => {
+        output += data.toString();
+      }
+    }
     // Install EDM for Linux and export the PATH such that edm can
     // be used directly in GitHub Actions workflows.
     await exec.exec(
         "bash",
-        [path.join(__dirname, "install-edm-linux.sh"), edmVersion, downloadDir]
+        [path.join(__dirname, "install-edm-linux.sh"), edmVersion, downloadDir],
+        options
     )
     const newPath = [
         path.join(process.env.HOME, "edm", "bin"),
@@ -64,6 +72,7 @@ async function installEdmLinux() {
     // Export path so that edm is available
     core.info("Setting Path to " + newPath)
     core.exportVariable("PATH", newPath)
+    console.log("Script output: ", output)
 
 }
 
