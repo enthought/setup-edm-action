@@ -13,6 +13,6 @@ jobs:
       - name: Install EDM
         uses: ./
         with:
-          edm-version: 3.7.0
+          edm-version: 4.0.0
       - name: Show EDM versions
         run: edm versions
