@@ -37,7 +37,7 @@ install_edm() {
     echo "debug" >&2
     echo "$EDM_URL" >&2
     if [ ! -e "$EDM_INSTALLER_PATH" ]; then
-        curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "$EDM_URL"
+        curl -v --fail --show-error -o "$EDM_INSTALLER_PATH" -L "$EDM_URL"
     fi
 
     bash "$EDM_INSTALLER_PATH" -b -p "${HOME}/edm"
