@@ -34,6 +34,7 @@ install_edm() {
         local EDM_URL="https://package-data.enthought.com/edm/rh6_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
     fi
 
+    echo $EDM_URL
     if [ ! -e "$EDM_INSTALLER_PATH" ]; then
         curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "$EDM_URL"
     fi
