@@ -25,6 +25,8 @@ install_edm() {
     local EDM_PACKAGE="edm_cli_${INSTALL_EDM_VERSION}.pkg"
     local EDM_INSTALLER_PATH="${DOWNLOAD_DIR}/${EDM_PACKAGE}"
 
+    echo "https://package-data.enthought.com/edm/osx_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+
     if [ ! -e "$EDM_INSTALLER_PATH" ]; then
         curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "https://package-data.enthought.com/edm/osx_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
     fi
