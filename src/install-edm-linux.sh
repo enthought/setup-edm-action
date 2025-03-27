@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# (C) Copyright 2020 Enthought, Inc., Austin, TX
+# (C) Copyright 2020-2025 Enthought, Inc., Austin, TX
 # All rights reserved.
 #
 # This software is provided without warranty under the terms of the BSD
@@ -24,14 +24,16 @@ DOWNLOAD_DIR=$2
 install_edm() {
     local EDM_MAJOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+)\..*/\1/')"
     local EDM_MAJOR_MINOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+\.[[:digit:]]+)\..*/\1/')"
-    local EDM_PACKAGE="edm_cli_${INSTALL_EDM_VERSION}_linux_x86_64.sh"
-    local EDM_INSTALLER_PATH="${DOWNLOAD_DIR}/${EDM_PACKAGE}"
+    local EDM_PACKAGE="edm_cli_${INSTALL_EDM_VERSION}"
+    local EDM_INSTALLER_PATH="${DOWNLOAD_DIR}/${EDM_PACKAGE}.sh"
 
-    # Use rh8 for version 4.0.0 and later, otherwise use rh6
-    if [ "$EDM_MAJOR" -gt "3" ]; then
-        local EDM_URL="https://package-data.enthought.com/edm/rh8_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+    # We special case some versions because the cli name actual urls have changed.
+    if [ "$EDM_MAJOR_MINOR" == "4.0" ]; then
+        local EDM_URL="https://package-data.enthought.com/edm/rh8_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}_linux_x86_64.sh"
+    elif [ "$EDM_MAJOR" -ge "4" ]; then
+	local EDM_URL="https://package-data.enthought.com/edm/rh8_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}_rh8_x86_64.sh"
     else
-        local EDM_URL="https://package-data.enthought.com/edm/rh6_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}"
+        local EDM_URL="https://package-data.enthought.com/edm/rh6_x86_64/${EDM_MAJOR_MINOR}/${EDM_PACKAGE}_linux_x86_64.sh"
     fi
 
     echo "$EDM_URL"
@@ -40,6 +42,7 @@ install_edm() {
     fi
 
     bash "$EDM_INSTALLER_PATH" -b -p "${HOME}/edm"
+
 }
 
 install_edm
