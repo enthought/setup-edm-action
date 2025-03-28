@@ -26,7 +26,7 @@ FOR /F "tokens=1,2,3 delims=." %%a in ("%INSTALL_EDM_VERSION%") do (
 )
 
 SET EDM_MAJOR_MINOR=%MAJOR%.%MINOR%
-SET EDM_PACKAGE=edm_cli_%INSTALL_EDM_VERSION%_x86_64.msi
+SET EDM_PACKAGE=edm_cli_%INSTALL_EDM_VERSION%
 SET EDM_INSTALLER_PATH=%DOWNLOAD_DIR%\%EDM_PACKAGE%.msi
 
 rem We special case the installer name because they changed after 4.1.0
