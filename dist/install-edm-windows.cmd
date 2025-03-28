@@ -38,6 +38,7 @@ IF /I %EDM_MAJOR_MINOR%==4.0 (
    SET EDM_URL=https://package-data.enthought.com/edm/win_x86_64/%EDM_MAJOR_MINOR%/%EDM_PACKAGE%_x86_64.msi
 ))
 
+@ECHO.%EDM_URL%
 SET COMMAND="(new-object net.webclient).DownloadFile('%EDM_URL%', '%EDM_INSTALLER_PATH%')"
 
 IF NOT EXIST %EDM_INSTALLER_PATH% CALL powershell.exe -Command %COMMAND% || GOTO error
