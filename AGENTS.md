@@ -25,7 +25,7 @@ npm run -s build
 
 ## Testing
 
-There are no automated unit tests and no test script. The only way to test is to **open a pull request** — CI (`.github/workflows/ci.yml`) runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: 4.1.0`, then verifies `edm versions` exits 0.
+There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: 4.1.0`, then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
 
 ## No linting or type-checking
 
@@ -47,9 +47,9 @@ Platform scripts skip the download if the installer file already exists (cache-f
 
 The shell/cmd scripts have version-conditional logic for constructing the installer download URL:
 
-- `< 4.0`: Linux uses `rh6_x86_64` path/suffix; macOS `.pkg` has no arch suffix
-- `= 4.0`: special-cased (different naming pattern)
-- `>= 4.1`: Linux uses `rh8_x86_64`; macOS gets `_osx_x86_64`; Windows gets `_win_x86_64`
+- `< 4.0`: Linux uses `rh6_x86_64` folder + `_linux_x86_64.sh` suffix; macOS `.pkg` has no arch suffix; Windows `_x86_64.msi`
+- `= 4.0`: Linux uses `rh8_x86_64` folder + `_linux_x86_64.sh` suffix; macOS no arch suffix; Windows `_x86_64.msi`
+- `> 4.0` (i.e. `>= 4.1`): Linux uses `rh8_x86_64` folder + `_rh8_x86_64.sh` suffix; macOS `_osx_x86_64.pkg`; Windows `_win_x86_64.msi`
 
 `cli_installers.csv` is the reference table of installer URLs and SHA256 checksums. `edm_installers.py` is a helper script (not part of the action) for discovering new installer URLs when bumping supported versions.
 
