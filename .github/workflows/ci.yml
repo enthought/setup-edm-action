@@ -6,20 +6,13 @@ jobs:
   main:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            edm-version: 4.1.7
-          # No macOS installers are published for EDM 4.1.4 and later.
-          - os: macos-latest
-            edm-version: 4.1.3
-          - os: windows-latest
-            edm-version: 4.1.7
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install EDM
         uses: ./
         with:
-          edm-version: ${{ matrix.edm-version }}
+          edm-version: 4.1.0
       - name: Show EDM versions
         run: edm versions

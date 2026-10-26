@@ -25,7 +25,7 @@ npm run -s build
 
 ## Testing
 
-There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: 4.1.7` (4.1.3 on macOS), then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
+There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: 4.1.0`, then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
 
 ## No linting or type-checking
 
