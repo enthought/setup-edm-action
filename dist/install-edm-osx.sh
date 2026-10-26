@@ -50,7 +50,7 @@ install_edm() {
     fi
 
     if [ -n "$EXPECTED_SHA256" ]; then
-        local ACTUAL_SHA256="$(shasum -a 256 "$EDM_INSTALLER_PATH" | cut -d' ' -f1)"
+        local ACTUAL_SHA256="$(shasum -a 256 < "$EDM_INSTALLER_PATH" | cut -d' ' -f1)"
         if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
             echo "SHA256 mismatch for $EDM_INSTALLER_PATH: expected $EXPECTED_SHA256, got $ACTUAL_SHA256"
             rm -f "$EDM_INSTALLER_PATH"
