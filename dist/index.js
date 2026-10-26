@@ -27772,31 +27772,84 @@ const fs = __nccwpck_require__(9896)
 const path = __nccwpck_require__(6928)
 const expandTilde = __nccwpck_require__(6644)
 
-// EDM Version, e.g. '3.7.0'
-const edmVersion = core.getInput('edm-version', { required: true });
+// Requested EDM version, e.g. '3.7.0' or 'latest'
+const requestedVersion = core.getInput('edm-version', { required: true });
+
+// The EDM version to install; 'latest' is resolved in main().
+let edmVersion = requestedVersion;
 
 // Directory path for storing downloaded installer
 const downloadDir = expandTilde(
     path.normalize(core.getInput('download-directory', { required: true }))
 );
 
-function lookupSha256(platform) {
-    // Return the expected SHA256 of the installer for the given platform
-    // and the requested EDM version as a list of extra script arguments, or an empty list if the version is not listed.
+function readInstallerTable() {
+    // Return the rows of cli_installers.csv as {version, platform, sha256}.
     const table = fs.readFileSync(
         __nccwpck_require__.ab + "cli_installers.csv", "utf8"
     )
-    for (const line of table.split(/\r?\n/).slice(1)) {
-        const [version, rowPlatform, , sha256] = line.split(",")
-        if (version === edmVersion && rowPlatform === platform) {
-            return [sha256]
-        }
+    return table.split(/\r?\n/).slice(1).filter(Boolean).map((line) => {
+        const [version, platform, , sha256] = line.split(",")
+        return {version, platform, sha256}
+    })
+}
+
+
+function lookupSha256(platform) {
+    // Return the expected SHA256 of the installer for the given platform
+    // and the requested EDM version as a list of extra script arguments,
+    // or an empty list if the version is not listed.
+    const row = readInstallerTable().find(
+        (r) => r.version === edmVersion && r.platform === platform
+    )
+    if (row) {
+        return [row.sha256]
     }
     core.warning(
         "No SHA256 checksum is known for EDM " + edmVersion + " (" + platform
         + "); the installer will not be verified."
     )
     return []
+}
+
+
+function compareVersions(a, b) {
+    // Compare dotted numeric versions, e.g. '4.1.10' > '4.1.7'.
+    const pa = a.split(".").map(Number)
+    const pb = b.split(".").map(Number)
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] || 0) - (pb[i] || 0)
+        if (diff !== 0) {
+            return diff
+        }
+    }
+    return 0
+}
+
+
+function resolveLatestVersion() {
+    // The newest EDM version that has an installer for this runner, taken
+    // from cli_installers.csv (the EDM releases are not publicly queryable).
+    // Installers are not published for every platform of every release,
+    // e.g. there are no macOS installers after 4.1.3.
+    let platform
+    if (process.platform == "linux") {
+        platform = "linux-x86_64"
+    } else if (process.platform == "darwin") {
+        platform = process.arch === "arm64" ? "osx-arm64" : "osx-x86_64"
+    } else if (process.platform == "win32") {
+        platform = "win-x86_64"
+    } else {
+        throw new Error("Unsupported platform.")
+    }
+    const versions = readInstallerTable()
+        .filter((r) => r.platform === platform)
+        .map((r) => r.version)
+        .sort(compareVersions)
+    if (versions.length === 0) {
+        throw new Error("No EDM installers are known for " + platform)
+    }
+    return versions[versions.length - 1]
 }
 
 
@@ -27819,6 +27872,11 @@ async function main() {
     fs.mkdirSync(downloadDir, {recursive: true})
 
     try {
+
+        if (requestedVersion.toLowerCase() === "latest") {
+            edmVersion = resolveLatestVersion()
+            core.info("Resolved edm-version 'latest' to " + edmVersion)
+        }
 
         if (process.platform == "linux") {
             installEdmLinux()
