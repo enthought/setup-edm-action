@@ -13,11 +13,13 @@
 :: Options
 :: %1 -- EDM VERSION
 :: %2 -- Directory path for storing the downloaded installer
+:: %3 -- (Optional) expected SHA256 of the installer
 
 SETLOCAL EnableDelayedExpansion
 
 SET INSTALL_EDM_VERSION=%1
-SET DOWNLOAD_DIR=%2
+SET "DOWNLOAD_DIR=%~2"
+SET EXPECTED_SHA256=%3
 
 FOR /F "tokens=1,2,3 delims=." %%a in ("%INSTALL_EDM_VERSION%") do (
     SET MAJOR=%%a
@@ -27,7 +29,7 @@ FOR /F "tokens=1,2,3 delims=." %%a in ("%INSTALL_EDM_VERSION%") do (
 
 SET EDM_MAJOR_MINOR=%MAJOR%.%MINOR%
 SET EDM_PACKAGE=edm_cli_%INSTALL_EDM_VERSION%
-SET EDM_INSTALLER_PATH=%DOWNLOAD_DIR%\%EDM_PACKAGE%.msi
+SET "EDM_INSTALLER_PATH=%DOWNLOAD_DIR%\%EDM_PACKAGE%.msi"
 
 rem We special case the installer name because they changed after 4.1.0
 IF /I %EDM_MAJOR_MINOR%==4.0 (
@@ -41,8 +43,24 @@ IF /I %EDM_MAJOR_MINOR%==4.0 (
 @ECHO.%EDM_URL%
 SET COMMAND="(new-object net.webclient).DownloadFile('%EDM_URL%', '%EDM_INSTALLER_PATH%')"
 
-IF NOT EXIST %EDM_INSTALLER_PATH% CALL powershell.exe -Command %COMMAND% || GOTO error
-CALL msiexec /qn /i %EDM_INSTALLER_PATH% EDMAPPDIR=C:\Enthought\edm || GOTO error
+IF NOT EXIST "%EDM_INSTALLER_PATH%" CALL powershell.exe -Command %COMMAND% || GOTO error
+
+rem Verify the installer. This avoids a parenthesised block and passes the
+rem path through the environment so that paths containing ) or ' still work.
+IF "%EXPECTED_SHA256%"=="" GOTO install
+FOR /F %%h IN ('powershell.exe -Command "(Get-FileHash -Algorithm SHA256 -LiteralPath $env:EDM_INSTALLER_PATH).Hash.ToLower()"') DO SET ACTUAL_SHA256=%%h
+IF /I "!ACTUAL_SHA256!"=="%EXPECTED_SHA256%" GOTO verified
+@ECHO.SHA256 mismatch for !EDM_INSTALLER_PATH!: expected %EXPECTED_SHA256%, got !ACTUAL_SHA256!
+DEL "!EDM_INSTALLER_PATH!"
+ENDLOCAL
+@ECHO.ERROR
+EXIT /b 1
+
+:verified
+@ECHO.SHA256 verified: !ACTUAL_SHA256!
+
+:install
+CALL msiexec /qn /i "%EDM_INSTALLER_PATH%" EDMAPPDIR=C:\Enthought\edm || GOTO error
 
 ENDLOCAL
 @ECHO.DONE

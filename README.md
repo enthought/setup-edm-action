@@ -30,7 +30,10 @@ jobs:
 ## Inputs
 
 - `edm-version`: (Required)
-  A string to specify the EDM version to be installed, e.g. '3.7.0'
+  A string to specify the EDM version to be installed, e.g. '4.1.7'. Installers for versions listed in
+  `src/cli_installers.csv` (4.0.0 and later) are verified against a SHA256
+  checksum; other versions install with a warning. No macOS installers are
+  published for 4.1.4 and later.
 - `download-directory`: (Optional)
   A string to specify the directory for storing the downloaded installer.
   Default to `~/.cache/download`, which is within the default cache folder
