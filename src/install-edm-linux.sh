@@ -13,13 +13,14 @@
 
 set -e
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 EDM_VERSION DOWNLOAD_DIR"
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+    echo "Usage: $0 EDM_VERSION DOWNLOAD_DIR [EXPECTED_SHA256]"
     exit 1
 fi
 
 INSTALL_EDM_VERSION=$1
 DOWNLOAD_DIR=$2
+EXPECTED_SHA256=$3
 
 install_edm() {
     local EDM_MAJOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+)\..*/\1/')"
@@ -39,6 +40,16 @@ install_edm() {
     echo "$EDM_URL"
     if [ ! -e "$EDM_INSTALLER_PATH" ]; then
         curl --fail --show-error -o "$EDM_INSTALLER_PATH" -L "$EDM_URL"
+    fi
+
+    if [ -n "$EXPECTED_SHA256" ]; then
+        local ACTUAL_SHA256="$(sha256sum "$EDM_INSTALLER_PATH" | cut -d' ' -f1)"
+        if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "SHA256 mismatch for $EDM_INSTALLER_PATH: expected $EXPECTED_SHA256, got $ACTUAL_SHA256"
+            rm -f "$EDM_INSTALLER_PATH"
+            exit 1
+        fi
+        echo "SHA256 verified: $ACTUAL_SHA256"
     fi
 
     bash "$EDM_INSTALLER_PATH" -b -p "${HOME}/edm"
