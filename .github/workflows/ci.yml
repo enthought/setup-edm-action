@@ -13,7 +13,6 @@ jobs:
       - name: Install EDM
         uses: ./
         with:
-          # No macOS build of EDM 4.1.7 exists (EDM is supported on Linux and Windows); macOS tests the last version that has one.
-          edm-version: ${{ runner.os == 'macOS' && '4.1.0' || '4.1.7' }}
+          edm-version: latest
       - name: Show EDM versions
         run: edm versions
