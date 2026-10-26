@@ -49,7 +49,7 @@ The shell/cmd scripts have version-conditional logic for constructing the instal
 
 - `< 4.0`: Linux uses `rh6_x86_64` folder + `_linux_x86_64.sh` suffix; macOS `.pkg` has no arch suffix; Windows `_x86_64.msi`
 - `= 4.0`: Linux uses `rh8_x86_64` folder + `_linux_x86_64.sh` suffix; macOS no arch suffix; Windows `_x86_64.msi`
-- `> 4.0` (i.e. `>= 4.1`): Linux uses `rh8_x86_64` folder + `_rh8_x86_64.sh` suffix; macOS `osx_<arch>` folder + `_osx_<arch>.pkg` (`arch` is `arm64` on Apple silicon, else `x86_64`; chosen in `src/index.js`, which passes `osx-arm64`/`osx-x86_64` to the script); Windows `_win_x86_64.msi`
+- `> 4.0` (i.e. `>= 4.1`): Linux uses `rh8_x86_64` folder + `_rh8_x86_64.sh` suffix; macOS `osx_<arch>` folder + `_osx_<arch>.pkg` (`arch` is `arm64` on Apple silicon, else `x86_64`; chosen in `src/index.js`, which passes `arm64`/`x86_64` to the script); Windows `_win_x86_64.msi`
 
 `src/cli_installers.csv` (`version,platform,url,sha256`) holds the expected SHA256 of each supported installer. `src/index.js` looks up the checksum for the requested version and passes it to the platform script, which verifies the installer (including a cached one) and fails on a mismatch. Versions not listed only produce a warning and are installed unverified.
 

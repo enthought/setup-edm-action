@@ -42,12 +42,12 @@ function lookupSha256(platform) {
 }
 
 
-function osxPlatform() {
+function osxArch() {
     // Apple silicon installers exist from EDM 4.1 onwards; older versions
     // only have x86_64 installers (which run under Rosetta).
     const [major, minor] = edmVersion.split(".").map(Number)
     const hasArm64 = major > 4 || (major === 4 && minor >= 1)
-    return (process.arch === "arm64" && hasArm64) ? "osx-arm64" : "osx-x86_64"
+    return (process.arch === "arm64" && hasArm64) ? "arm64" : "x86_64"
 }
 
 
@@ -102,12 +102,12 @@ async function installEdmLinux() {
 
 async function installEdmOSX() {
     // Install EDM for OSX
-    const platform = osxPlatform()
+    const arch = osxArch()
     await exec.exec(
         "sh",
         [
             path.join(__dirname, "install-edm-osx.sh"),
-            edmVersion, downloadDir, platform, ...lookupSha256(platform)
+            edmVersion, downloadDir, arch, ...lookupSha256("osx-" + arch)
         ]
     )
     // no need to update path for OSX

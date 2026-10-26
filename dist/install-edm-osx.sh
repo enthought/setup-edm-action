@@ -13,21 +13,15 @@
 set -e
 
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-    echo "Usage: $0 EDM_VERSION DOWNLOAD_DIR PLATFORM [EXPECTED_SHA256]"
-    echo "PLATFORM is osx-x86_64 or osx-arm64"
+    echo "Usage: $0 EDM_VERSION DOWNLOAD_DIR ARCH [EXPECTED_SHA256]"
+    echo "ARCH is x86_64 or arm64"
     exit 1
 fi
 
 INSTALL_EDM_VERSION=$1
 DOWNLOAD_DIR=$2
-PLATFORM=$3
+EDM_ARCH=$3
 EXPECTED_SHA256=$4
-
-case "$PLATFORM" in
-    osx-x86_64) EDM_ARCH="x86_64" ;;
-    osx-arm64) EDM_ARCH="arm64" ;;
-    *) echo "Unsupported platform: $PLATFORM"; exit 1 ;;
-esac
 
 install_edm() {
     local EDM_MAJOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+)\..*/\1/')"
