@@ -20,9 +20,9 @@ jobs:
           path: ~/.cache
           key: ${{ runner.os }}--${{ hashFiles('requirements.txt') }}
       - name: Setup EDM
-        uses: enthought/setup-edm-action@v3
+        uses: enthought/setup-edm-action@v4
         with:
-          edm-version: 3.7.0
+          edm-version: latest
       - name: Install Python packages
         run: edm install -y typing
 ```
