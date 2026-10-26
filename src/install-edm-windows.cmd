@@ -45,18 +45,21 @@ SET COMMAND="(new-object net.webclient).DownloadFile('%EDM_URL%', '%EDM_INSTALLE
 
 IF NOT EXIST %EDM_INSTALLER_PATH% CALL powershell.exe -Command %COMMAND% || GOTO error
 
-IF NOT "%EXPECTED_SHA256%"=="" (
-    FOR /F %%h IN ('powershell.exe -Command "(Get-FileHash -Algorithm SHA256 '%EDM_INSTALLER_PATH%').Hash.ToLower()"') DO SET ACTUAL_SHA256=%%h
-    IF /I NOT "!ACTUAL_SHA256!"=="%EXPECTED_SHA256%" (
-        @ECHO.SHA256 mismatch for %EDM_INSTALLER_PATH%: expected %EXPECTED_SHA256%, got !ACTUAL_SHA256!
-        DEL %EDM_INSTALLER_PATH%
-        ENDLOCAL
-        @ECHO.ERROR
-        EXIT /b 1
-    )
-    @ECHO.SHA256 verified: !ACTUAL_SHA256!
-)
+rem Verify the installer. This avoids a parenthesised block and passes the
+rem path through the environment so that paths containing ) or ' still work.
+IF "%EXPECTED_SHA256%"=="" GOTO install
+FOR /F %%h IN ('powershell.exe -Command "(Get-FileHash -Algorithm SHA256 -LiteralPath $env:EDM_INSTALLER_PATH).Hash.ToLower()"') DO SET ACTUAL_SHA256=%%h
+IF /I "!ACTUAL_SHA256!"=="%EXPECTED_SHA256%" GOTO verified
+@ECHO.SHA256 mismatch for !EDM_INSTALLER_PATH!: expected %EXPECTED_SHA256%, got !ACTUAL_SHA256!
+DEL "!EDM_INSTALLER_PATH!"
+ENDLOCAL
+@ECHO.ERROR
+EXIT /b 1
 
+:verified
+@ECHO.SHA256 verified: !ACTUAL_SHA256!
+
+:install
 CALL msiexec /qn /i %EDM_INSTALLER_PATH% EDMAPPDIR=C:\Enthought\edm || GOTO error
 
 ENDLOCAL

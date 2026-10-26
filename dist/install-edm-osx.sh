@@ -27,6 +27,10 @@ install_edm() {
     local EDM_MAJOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+)\..*/\1/')"
     local EDM_MAJOR_MINOR="$(echo "$INSTALL_EDM_VERSION" | sed -E -e 's/([[:digit:]]+\.[[:digit:]]+)\..*/\1/')"
     local EDM_PACKAGE="edm_cli_${INSTALL_EDM_VERSION}"
+    if [ "$EDM_ARCH" == "arm64" ] && { [ "$EDM_MAJOR" -lt "4" ] || [ "$EDM_MAJOR_MINOR" == "4.0" ]; }; then
+        echo "No arm64 installer exists for EDM $INSTALL_EDM_VERSION"
+        exit 1
+    fi
     local EDM_INSTALLER_PATH="${DOWNLOAD_DIR}/${EDM_PACKAGE}_${EDM_ARCH}.pkg"
 
 
