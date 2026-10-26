@@ -18,7 +18,7 @@ branding:
 
 inputs:
   edm-version:
-    description: 'EDM version required'
+    description: "EDM version required, e.g. '4.1.7', or 'latest' for the newest version with an installer for the runner's platform"
     required: true
   download-directory:
     description: 'Directory for storing the downloaded EDM installer(s).'

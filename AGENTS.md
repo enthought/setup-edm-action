@@ -49,9 +49,15 @@ The shell/cmd scripts have version-conditional logic for constructing the instal
 
 - `< 4.0`: Linux uses `rh6_x86_64` folder + `_linux_x86_64.sh` suffix; macOS `.pkg` has no arch suffix; Windows `_x86_64.msi`
 - `= 4.0`: Linux uses `rh8_x86_64` folder + `_linux_x86_64.sh` suffix; macOS no arch suffix; Windows `_x86_64.msi`
-- `> 4.0` (i.e. `>= 4.1`): Linux uses `rh8_x86_64` folder + `_rh8_x86_64.sh` suffix; macOS `_osx_x86_64.pkg`; Windows `_win_x86_64.msi`
+- `> 4.0` (i.e. `>= 4.1`): Linux uses `rh8_x86_64` folder + `_rh8_x86_64.sh` suffix; macOS `osx_<arch>` folder + `_osx_<arch>.pkg` (`arch` is `arm64` on Apple silicon, else `x86_64`; chosen in `src/index.js`, which passes `arm64`/`x86_64` to the script); Windows `_win_x86_64.msi`
 
-`cli_installers.csv` is the reference table of installer URLs and SHA256 checksums. `edm_installers.py` is a helper script (not part of the action) for discovering new installer URLs when bumping supported versions.
+`src/cli_installers.csv` (`version,platform,url,sha256`) holds the expected SHA256 of each supported installer. `src/index.js` looks up the checksum for the requested version and passes it to the platform script, which verifies the installer (including a cached one) and fails on a mismatch. Versions not listed only produce a warning and are installed unverified. `edm-version: latest` is resolved in `src/index.js` to the highest version in the CSV that has a row for the runner's platform (`osx-arm64` on Apple silicon), so adding rows for a new release is what makes it the new `latest`.
+
+### Adding a new EDM version
+
+1. Get the digests from the release assets: `gh release view vX.Y.Z -R enthought/edm --json assets -q '.assets[]|select(.name|test("^edm_cli_.*\\.(sh|pkg|msi)$"))|.name+" "+.digest'`. Releases before 4.1.2 have no digests; download the installer from `package-data.enthought.com` and run `sha256sum` on it.
+2. Add one row per platform to `src/cli_installers.csv` (platforms: `linux-x86_64`, `osx-x86_64`, `osx-arm64`, `win-x86_64`). No macOS installers are published for 4.1.4 and later.
+3. Rebuild `dist/`.
 
 ## Key files
 
@@ -62,6 +68,5 @@ The shell/cmd scripts have version-conditional logic for constructing the instal
 | `src/install-edm-linux.sh` | Linux installer |
 | `src/install-edm-osx.sh` | macOS installer |
 | `src/install-edm-windows.cmd` | Windows installer |
-| `cli_installers.csv` | Installer URL + checksum reference |
-| `edm_installers.py` | Utility to discover new installer URLs |
+| `src/cli_installers.csv` | Installer URL + expected SHA256 per version/platform |
 | `DEVELOPING.md` | Developer setup guide |
