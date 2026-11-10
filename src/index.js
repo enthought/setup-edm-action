@@ -58,6 +58,7 @@ function setFailed(message) {
 
 function addPath(dir) {
     // Prepend `dir` to PATH for the subsequent steps of the job.
+    info("Adding " + dir + " to PATH")
     if (process.env.GITHUB_PATH) {
         fs.appendFileSync(process.env.GITHUB_PATH, dir + os.EOL, "utf8")
     }
@@ -77,20 +78,19 @@ function expandTilde(filepath) {
 }
 
 
-function run(command, args, spawn = {}) {
-    // Run `command` with inherited stdio; throw unless it exits with 0.
-    // `spawn` may override the executable and arguments actually spawned.
-    info("[command]" + [command, ...args].join(" "))
-    const {file = command, argv = args, ...options} = spawn
+function run(file, args, options = {}) {
+    // Run a command with inherited stdio; throw unless it exits with 0.
+    const label = [file, ...args].join(" ")
+    info("[command]" + label)
     const result = child_process.spawnSync(
-        file, argv, {stdio: "inherit", ...options}
+        file, args, {stdio: "inherit", ...options}
     )
     if (result.error) {
         throw result.error
     }
     if (result.status !== 0) {
         throw new Error(
-            "The process '" + command + "' failed with exit code "
+            "The process '" + label + "' failed with exit code "
             + result.status
         )
     }
@@ -98,24 +98,15 @@ function run(command, args, spawn = {}) {
 
 
 function runCmdScript(script, args) {
-    // Run a Windows .cmd script. Node refuses to spawn .cmd/.bat files
-    // without a shell, so call cmd.exe the way @actions/exec does: the
-    // whole command line wrapped in quotes and passed verbatim. Arguments
-    // are quoted only when needed, as the script reads %1 and %3 raw.
-    const quote = (arg) => /[\s"&|<>^()]/.test(arg) ? '"' + arg + '"' : arg
-    const commandLine = ['"' + script + '"', ...args.map(quote)].join(" ")
-    run(script, args, {
-        file: process.env.COMSPEC || "cmd.exe",
-        argv: ["/D", "/S", "/C", '"' + commandLine + '"'],
-        windowsVerbatimArguments: true,
-    })
+    // Run a Windows .cmd script. Node refuses to spawn .cmd files without
+    // a shell; with `shell: true` it runs `cmd.exe /d /s /c "<line>"`.
+    // Every argument is quoted; the script strips the quotes with %~N.
+    const line = [script, ...args].map((arg) => '"' + arg + '"').join(" ")
+    run(line, [], {shell: true})
 }
 
 
-// Requested EDM version, e.g. '3.7.0' or 'latest'; set in main().
-let requestedVersion
-
-// The EDM version to install; 'latest' is resolved in main().
+// The EDM version to install, e.g. '4.1.8'; set in main().
 let edmVersion
 
 // Directory path for storing downloaded installer; set in main().
@@ -204,8 +195,8 @@ function osxArch() {
 function main() {
     // Main function to be run when the action is invoked.
     try {
-        requestedVersion = getInput("edm-version")
-        edmVersion = requestedVersion
+        // Requested EDM version, e.g. '4.1.8' or 'latest'
+        const requestedVersion = getInput("edm-version")
         downloadDir = expandTilde(
             path.normalize(getInput("download-directory"))
         )
@@ -219,6 +210,8 @@ function main() {
         if (requestedVersion.toLowerCase() === "latest") {
             edmVersion = resolveLatestVersion()
             info("Resolved edm-version 'latest' to " + edmVersion)
+        } else {
+            edmVersion = requestedVersion
         }
 
         if (process.platform == "linux") {
@@ -247,9 +240,7 @@ function installEdmLinux() {
             edmVersion, downloadDir, ...lookupSha256("linux-x86_64")
         ]
     )
-    const edmDir = path.join(os.homedir(), "edm", "bin")
-    info("Adding " + edmDir + " to PATH")
-    addPath(edmDir)
+    addPath(path.join(os.homedir(), "edm", "bin"))
 }
 
 
@@ -274,9 +265,7 @@ function installEdmWindows() {
         path.join(__dirname, "install-edm-windows.cmd"),
         [edmVersion, downloadDir, ...lookupSha256("win-x86_64")]
     )
-    const edmDir = path.join("C:\\", "Enthought", "edm")
-    info("Adding " + edmDir + " to PATH")
-    addPath(edmDir)
+    addPath(path.join("C:\\", "Enthought", "edm"))
 }
 
 

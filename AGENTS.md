@@ -12,7 +12,6 @@ Gotchas the helpers encode:
 
 - Input env var names keep hyphens: `edm-version` is `INPUT_EDM-VERSION`.
 - The runner does not enforce `required: true`; `getInput` fails on an empty value.
-- Node refuses to spawn `.cmd` files without a shell, so `runCmdScript` calls `cmd.exe /D /S /C` with verbatim, minimally quoted arguments; the Windows script reads `%1`/`%3` unquoted.
 
 ## Testing
 
