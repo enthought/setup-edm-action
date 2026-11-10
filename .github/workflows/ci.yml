@@ -5,14 +5,38 @@ on: [pull_request, workflow_dispatch]
 jobs:
   main:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        edm-version: [latest]
+        download-directory: ['~/.cache/download']
+        include:
+          # Windows argument quoting: a download directory with spaces, and
+          # a pre-4.1 release (older installer URL layout).
+          - os: windows-latest
+            edm-version: '4.0.0'
+            download-directory: '~/edm installer cache/download'
+          # A release missing from cli_installers.csv: installed without
+          # checksum verification, after a warning.
+          - os: windows-latest
+            edm-version: '3.7.0'
+            download-directory: '~/.cache/download'
+    # Keep the original "main (<os>)" names, which checks may require.
+    name: >-
+      ${{ matrix.edm-version == 'latest'
+          && format('main ({0})', matrix.os)
+          || format('main ({0}, {1})', matrix.os, matrix.edm-version) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install EDM
         uses: ./
         with:
-          edm-version: latest
+          edm-version: ${{ matrix.edm-version }}
+          download-directory: ${{ matrix.download-directory }}
       - name: Show EDM versions
         run: edm versions
+      - name: Check the requested version is installed
+        if: matrix.edm-version != 'latest'
+        shell: bash
+        run: edm versions | grep -E '^version: +${{ matrix.edm-version }}$'

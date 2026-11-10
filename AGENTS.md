@@ -15,7 +15,7 @@ Gotchas the helpers encode:
 
 ## Testing
 
-There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: latest`, then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
+There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: latest`, then verifies `edm versions` exits 0. Two extra `windows-latest` jobs exercise the `cmd.exe` argument quoting: `4.0.0` into a download directory with spaces, and `3.7.0`, which is not in `cli_installers.csv` (unverified install). CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
 
 ## No linting or type-checking
 
