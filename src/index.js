@@ -41,17 +41,19 @@ function escapeData(message) {
 
 
 function info(message) {
-    console.log(message)
+    // Write synchronously, so the line precedes the output of any child
+    // process started next (console.log to a pipe can be asynchronous).
+    fs.writeSync(1, message + os.EOL)
 }
 
 
 function warning(message) {
-    console.log("::warning::" + escapeData(message))
+    info("::warning::" + escapeData(message))
 }
 
 
 function setFailed(message) {
-    console.log("::error::" + escapeData(message))
+    info("::error::" + escapeData(message))
     process.exitCode = 1
 }
 
@@ -88,6 +90,11 @@ function run(file, args, options = {}) {
     if (result.error) {
         throw result.error
     }
+    if (result.signal) {
+        throw new Error(
+            "The process '" + label + "' was killed by " + result.signal
+        )
+    }
     if (result.status !== 0) {
         throw new Error(
             "The process '" + label + "' failed with exit code "
@@ -101,6 +108,12 @@ function runCmdScript(script, args) {
     // Run a Windows .cmd script. Node refuses to spawn .cmd files without
     // a shell; with `shell: true` it runs `cmd.exe /d /s /c "<line>"`.
     // Every argument is quoted; the script strips the quotes with %~N.
+    // A quote inside a value would end the quoting and let cmd.exe run
+    // the rest as commands; no valid version, path or checksum has one.
+    const bad = args.find((arg) => arg.includes('"'))
+    if (bad !== undefined) {
+        throw new Error("Invalid character '\"' in argument: " + bad)
+    }
     const line = [script, ...args].map((arg) => '"' + arg + '"').join(" ")
     run(line, [], {shell: true})
 }
