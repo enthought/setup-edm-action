@@ -38,9 +38,17 @@ jobs:
         run: edm versions
       - name: Check the requested version is installed
         if: matrix.edm-version != 'latest'
-        shell: bash
-        # edm.exe ends lines with CRLF, so strip the CR before comparing.
+        shell: pwsh
         run: |
-          installed=$(edm versions | tr -d '\r' | awk '$1 == "version:" {print $2}')
-          echo "Installed EDM version: $installed"
-          test "$installed" = '${{ matrix.edm-version }}'
+          $installed = (edm versions | Select-String '^version:\s+(\S+)').Matches[0].Groups[1].Value
+          "Installed EDM version: $installed"
+          if ($installed -ne '${{ matrix.edm-version }}') { exit 1 }
+      - name: Diagnose edm on PATH from bash (temporary)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "$PATH" | tr ':' '\n' | grep -i enthought || echo "no Enthought entry in bash PATH"
+          ls -la /c/Enthought/edm | head -20
+          command -v edm || echo "bash: edm not found"
+          command -v edm.exe edm.bat edm.cmd || true
