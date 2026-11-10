@@ -8,22 +8,119 @@
 //
 // Thanks for using Enthought open source!
 
-const core = require('@actions/core')
-const exec = require('@actions/exec')
+const child_process = require('child_process')
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
-const expandTilde = require('expand-tilde')
 
-// Requested EDM version, e.g. '3.7.0' or 'latest'
-const requestedVersion = core.getInput('edm-version', { required: true });
+// This action uses only Node.js built-ins, so it runs from src/ without a
+// build step. The helpers below implement the few parts of @actions/core
+// and @actions/exec it needs, using the runner's documented interface:
+// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands
+
+
+function getInput(name) {
+    // The runner passes input `name` in the environment variable
+    // INPUT_<NAME>: upper-cased, with spaces (but not hyphens) replaced
+    // by underscores. Both inputs of this action are required or have a
+    // default, so an empty value is an error.
+    const key = "INPUT_" + name.replace(/ /g, "_").toUpperCase()
+    const value = (process.env[key] || "").trim()
+    if (!value) {
+        throw new Error("Input required and not supplied: " + name)
+    }
+    return value
+}
+
+
+function escapeData(message) {
+    // Escape a workflow command value, as @actions/core does.
+    return String(message)
+        .replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A")
+}
+
+
+function info(message) {
+    console.log(message)
+}
+
+
+function warning(message) {
+    console.log("::warning::" + escapeData(message))
+}
+
+
+function setFailed(message) {
+    console.log("::error::" + escapeData(message))
+    process.exitCode = 1
+}
+
+
+function addPath(dir) {
+    // Prepend `dir` to PATH for the subsequent steps of the job.
+    if (process.env.GITHUB_PATH) {
+        fs.appendFileSync(process.env.GITHUB_PATH, dir + os.EOL, "utf8")
+    }
+    process.env.PATH = dir + path.delimiter + process.env.PATH
+}
+
+
+function expandTilde(filepath) {
+    // Expand a leading ~ (home directory) or ~+ (working directory).
+    if (filepath === "~" || /^~[\\/]/.test(filepath)) {
+        return path.join(os.homedir(), filepath.slice(1))
+    }
+    if (filepath === "~+" || /^~\+[\\/]/.test(filepath)) {
+        return path.join(process.cwd(), filepath.slice(2))
+    }
+    return filepath
+}
+
+
+function run(command, args, spawn = {}) {
+    // Run `command` with inherited stdio; throw unless it exits with 0.
+    // `spawn` may override the executable and arguments actually spawned.
+    info("[command]" + [command, ...args].join(" "))
+    const {file = command, argv = args, ...options} = spawn
+    const result = child_process.spawnSync(
+        file, argv, {stdio: "inherit", ...options}
+    )
+    if (result.error) {
+        throw result.error
+    }
+    if (result.status !== 0) {
+        throw new Error(
+            "The process '" + command + "' failed with exit code "
+            + result.status
+        )
+    }
+}
+
+
+function runCmdScript(script, args) {
+    // Run a Windows .cmd script. Node refuses to spawn .cmd/.bat files
+    // without a shell, so call cmd.exe the way @actions/exec does: the
+    // whole command line wrapped in quotes and passed verbatim. Arguments
+    // are quoted only when needed, as the script reads %1 and %3 raw.
+    const quote = (arg) => /[\s"&|<>^()]/.test(arg) ? '"' + arg + '"' : arg
+    const commandLine = ['"' + script + '"', ...args.map(quote)].join(" ")
+    run(script, args, {
+        file: process.env.COMSPEC || "cmd.exe",
+        argv: ["/D", "/S", "/C", '"' + commandLine + '"'],
+        windowsVerbatimArguments: true,
+    })
+}
+
+
+// Requested EDM version, e.g. '3.7.0' or 'latest'; set in main().
+let requestedVersion
 
 // The EDM version to install; 'latest' is resolved in main().
-let edmVersion = requestedVersion;
+let edmVersion
 
-// Directory path for storing downloaded installer
-const downloadDir = expandTilde(
-    path.normalize(core.getInput('download-directory', { required: true }))
-);
+// Directory path for storing downloaded installer; set in main().
+let downloadDir
+
 
 function readInstallerTable() {
     // Return the rows of cli_installers.csv as {version, platform, sha256}.
@@ -47,7 +144,7 @@ function lookupSha256(platform) {
     if (row) {
         return [row.sha256]
     }
-    core.warning(
+    warning(
         "No SHA256 checksum is known for EDM " + edmVersion + " (" + platform
         + "); the installer will not be verified."
     )
@@ -104,20 +201,24 @@ function osxArch() {
 }
 
 
-async function main() {
+function main() {
     // Main function to be run when the action is invoked.
-
-    // Create the download directory.
-    core.info(
-        "Using directory for storing downloaded installer: " + downloadDir
-    )
-    fs.mkdirSync(downloadDir, {recursive: true})
-
     try {
+        requestedVersion = getInput("edm-version")
+        edmVersion = requestedVersion
+        downloadDir = expandTilde(
+            path.normalize(getInput("download-directory"))
+        )
+
+        // Create the download directory.
+        info(
+            "Using directory for storing downloaded installer: " + downloadDir
+        )
+        fs.mkdirSync(downloadDir, {recursive: true})
 
         if (requestedVersion.toLowerCase() === "latest") {
             edmVersion = resolveLatestVersion()
-            core.info("Resolved edm-version 'latest' to " + edmVersion)
+            info("Resolved edm-version 'latest' to " + edmVersion)
         }
 
         if (process.platform == "linux") {
@@ -127,41 +228,35 @@ async function main() {
         } else if (process.platform == "win32") {
             installEdmWindows()
         } else {
-            core.setFailed("Unsupported platform.");
+            setFailed("Unsupported platform.")
         }
     }
     catch (error) {
-        core.setFailed(error.message);
+        setFailed(error.message)
     }
 }
 
 
-async function installEdmLinux() {
-    // Install EDM for Linux and export the PATH such that edm can
+function installEdmLinux() {
+    // Install EDM for Linux and add it to PATH such that edm can
     // be used directly in GitHub Actions workflows.
-    await exec.exec(
+    run(
         "bash",
         [
             path.join(__dirname, "install-edm-linux.sh"),
             edmVersion, downloadDir, ...lookupSha256("linux-x86_64")
         ]
     )
-    const newPath = [
-        path.join(process.env.HOME, "edm", "bin"),
-        process.env.PATH
-    ].join(":")
-
-    // Export path so that edm is available
-    core.info("Setting Path to " + newPath)
-    core.exportVariable("PATH", newPath)
-
+    const edmDir = path.join(os.homedir(), "edm", "bin")
+    info("Adding " + edmDir + " to PATH")
+    addPath(edmDir)
 }
 
 
-async function installEdmOSX() {
+function installEdmOSX() {
     // Install EDM for OSX
     const arch = osxArch()
-    await exec.exec(
+    run(
         "sh",
         [
             path.join(__dirname, "install-edm-osx.sh"),
@@ -169,28 +264,20 @@ async function installEdmOSX() {
         ]
     )
     // no need to update path for OSX
-
 }
 
 
-async function installEdmWindows() {
-    // Install EDM for Windows and export the PATH such that edm can
+function installEdmWindows() {
+    // Install EDM for Windows and add it to PATH such that edm can
     // be used directly in GitHub Actions workflows.
-    await exec.exec(
+    runCmdScript(
         path.join(__dirname, "install-edm-windows.cmd"),
         [edmVersion, downloadDir, ...lookupSha256("win-x86_64")]
     )
-
-    const newPath = [
-        path.join("C:\\", "Enthought", "edm"),
-        process.env.PATH
-    ].join(";")
-
-    // Export path so that edm is available
-    core.info("Setting Path to " + newPath)
-    core.exportVariable("PATH", newPath)
-
+    const edmDir = path.join("C:\\", "Enthought", "edm")
+    info("Adding " + edmDir + " to PATH")
+    addPath(edmDir)
 }
 
 
-main();
+main()

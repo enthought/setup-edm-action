@@ -2,34 +2,25 @@
 
 ## What this repo is
 
-A GitHub Action (`enthought/setup-edm-action`) that installs the Enthought Deployment Manager (EDM) CLI on Linux, macOS, and Windows runners. Runtime is `node20`; entrypoint is `dist/index.js`.
+A GitHub Action (`enthought/setup-edm-action`) that installs the Enthought Deployment Manager (EDM) CLI on Linux, macOS, and Windows runners. Runtime is `node24`; the runner executes `src/index.js` directly (`runs.main` in `action.yml`).
 
-## Critical: `dist/` is checked in and must be rebuilt
+## Zero dependencies: no build step
 
-The `dist/` directory is **not** gitignored. GitHub Actions executes `dist/index.js` directly. Changing `src/` without rebuilding leaves CI running the old compiled code.
+The action uses only Node.js built-ins, so there is no `dist/`, `node_modules`, or bundler, and an edit to `src/` is live as soon as it is committed. Keep it that way: an npm dependency would force bundling (ncc/rollup) and a checked-in `dist/` again. Instead of `@actions/core`/`@actions/exec`, `src/index.js` has small helpers over the runner's documented interface (`INPUT_*` env vars, `::warning::`/`::error::` commands, the `GITHUB_PATH` file); extend those.
 
-**Always rebuild and commit `dist/` before merging a PR.**
+Gotchas the helpers encode:
 
-## Commands
-
-```sh
-# Install dependencies
-npm install
-
-# Install bundler (one-time global install)
-npm i -g @vercel/ncc
-
-# Build: bundles src/index.js → dist/index.js + copies shell/cmd scripts
-npm run -s build
-```
+- Input env var names keep hyphens: `edm-version` is `INPUT_EDM-VERSION`.
+- The runner does not enforce `required: true`; `getInput` fails on an empty value.
+- Node refuses to spawn `.cmd` files without a shell, so `runCmdScript` calls `cmd.exe /D /S /C` with verbatim, minimally quoted arguments; the Windows script reads `%1`/`%3` unquoted.
 
 ## Testing
 
-There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: 4.1.0`, then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
+There are no automated unit tests and no test script. Testing is done by CI (`.github/workflows/ci.yml`), which runs the action end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` using `edm-version: latest`, then verifies `edm versions` exits 0. CI triggers on `pull_request` and `workflow_dispatch` (can be run manually from the Actions tab without opening a PR).
 
 ## No linting or type-checking
 
-No ESLint, Prettier, TypeScript, or pre-commit hooks are configured. No `devDependencies` in `package.json`.
+No ESLint, Prettier, TypeScript, or pre-commit hooks are configured.
 
 ## Architecture
 
@@ -37,9 +28,9 @@ No ESLint, Prettier, TypeScript, or pre-commit hooks are configured. No `devDepe
 
 | Platform | Script | PATH addition |
 |---|---|---|
-| `linux` | `src/install-edm-linux.sh` | `~/edm/bin` via `core.exportVariable` |
+| `linux` | `src/install-edm-linux.sh` | `~/edm/bin` via `GITHUB_PATH` |
 | `darwin` | `src/install-edm-osx.sh` | handled by macOS installer |
-| `win32` | `src/install-edm-windows.cmd` | `C:\Enthought\edm` via `core.exportVariable` |
+| `win32` | `src/install-edm-windows.cmd` | `C:\Enthought\edm` via `GITHUB_PATH` |
 
 Platform scripts skip the download if the installer file already exists (cache-friendly).
 
@@ -57,7 +48,6 @@ The shell/cmd scripts have version-conditional logic for constructing the instal
 
 1. Get the digests from the release assets: `gh release view vX.Y.Z -R enthought/edm --json assets -q '.assets[]|select(.name|test("^edm_cli_.*\\.(sh|pkg|msi)$"))|.name+" "+.digest'`. Releases before 4.1.2 have no digests; download the installer from `package-data.enthought.com` and run `sha256sum` on it.
 2. Add one row per platform to `src/cli_installers.csv` (platforms: `linux-x86_64`, `osx-x86_64`, `osx-arm64`, `win-x86_64`). No macOS installers are published for 4.1.4 and later.
-3. Rebuild `dist/`.
 
 ## Key files
 
