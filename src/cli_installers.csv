@@ -26,3 +26,5 @@ version,platform,url,sha256
 4.1.6,win-x86_64,https://package-data.enthought.com/edm/win_x86_64/4.1/edm_cli_4.1.6_win_x86_64.msi,6525df7245bffff9f1277ed336527e53bd1a701116dd3adbc3148f00a01c19aa
 4.1.7,linux-x86_64,https://package-data.enthought.com/edm/rh8_x86_64/4.1/edm_cli_4.1.7_rh8_x86_64.sh,bbaf260b09f785f7eec847629e5ac9a9e4819bfd37db555bd0350c52484a276d
 4.1.7,win-x86_64,https://package-data.enthought.com/edm/win_x86_64/4.1/edm_cli_4.1.7_win_x86_64.msi,ab2b9c9262c5cbf204c0c300b96ef02f8752d7f2da0b267d1237c3dae0a6286d
+4.1.8,linux-x86_64,https://package-data.enthought.com/edm/rh8_x86_64/4.1/edm_cli_4.1.8_rh8_x86_64.sh,d7e865616c1c382b0d2ad2a77480f66d32b91e3003bece705cda84f03bd34fc6
+4.1.8,win-x86_64,https://package-data.enthought.com/edm/win_x86_64/4.1/edm_cli_4.1.8_win_x86_64.msi,27d5cfeef09d681b99574700280e2e48eefd62ba42ca1d667e964c330ab2d0de
