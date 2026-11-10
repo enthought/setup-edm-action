@@ -119,13 +119,6 @@ function runCmdScript(script, args) {
 }
 
 
-// The EDM version to install, e.g. '4.1.8'; set in main().
-let edmVersion
-
-// Directory path for storing downloaded installer; set in main().
-let downloadDir
-
-
 function readInstallerTable() {
     // Return the rows of cli_installers.csv as {version, platform, sha256}.
     const table = fs.readFileSync(
@@ -138,21 +131,29 @@ function readInstallerTable() {
 }
 
 
-function lookupSha256(platform) {
-    // Return the expected SHA256 of the installer for the given platform
-    // and the requested EDM version as a list of extra script arguments,
-    // or an empty list if the version is not listed.
-    const row = readInstallerTable().find(
-        (r) => r.version === edmVersion && r.platform === platform
-    )
-    if (row) {
-        return [row.sha256]
+function installerPlatform(version) {
+    // The cli_installers.csv platform of the installer this runner uses,
+    // e.g. 'osx-arm64'. Apple silicon installers exist from EDM 4.1
+    // onwards; for an older `version` the x86_64 one runs under Rosetta.
+    // Without a `version`, the runner's native platform.
+    if (process.platform === "linux") {
+        return "linux-x86_64"
     }
-    warning(
-        "No SHA256 checksum is known for EDM " + edmVersion + " (" + platform
-        + "); the installer will not be verified."
-    )
-    return []
+    if (process.platform === "win32") {
+        return "win-x86_64"
+    }
+    if (process.platform === "darwin") {
+        if (process.arch !== "arm64") {
+            return "osx-x86_64"
+        }
+        if (version === undefined) {
+            return "osx-arm64"
+        }
+        const [major, minor] = version.split(".").map(Number)
+        const hasArm64 = major > 4 || (major === 4 && minor >= 1)
+        return hasArm64 ? "osx-arm64" : "osx-x86_64"
+    }
+    throw new Error("Unsupported platform.")
 }
 
 
@@ -170,22 +171,12 @@ function compareVersions(a, b) {
 }
 
 
-function resolveLatestVersion() {
-    // The newest EDM version that has an installer for this runner, taken
-    // from cli_installers.csv (the EDM releases are not publicly queryable).
+function resolveLatestVersion(table, platform) {
+    // The newest EDM version with an installer for `platform`, taken from
+    // cli_installers.csv (the EDM releases are not publicly queryable).
     // Installers are not published for every platform of every release,
     // e.g. there are no macOS installers after 4.1.3.
-    let platform
-    if (process.platform == "linux") {
-        platform = "linux-x86_64"
-    } else if (process.platform == "darwin") {
-        platform = process.arch === "arm64" ? "osx-arm64" : "osx-x86_64"
-    } else if (process.platform == "win32") {
-        platform = "win-x86_64"
-    } else {
-        throw new Error("Unsupported platform.")
-    }
-    const versions = readInstallerTable()
+    const versions = table
         .filter((r) => r.platform === platform)
         .map((r) => r.version)
         .sort(compareVersions)
@@ -196,12 +187,21 @@ function resolveLatestVersion() {
 }
 
 
-function osxArch() {
-    // Apple silicon installers exist from EDM 4.1 onwards; older versions
-    // only have x86_64 installers (which run under Rosetta).
-    const [major, minor] = edmVersion.split(".").map(Number)
-    const hasArm64 = major > 4 || (major === 4 && minor >= 1)
-    return (process.arch === "arm64" && hasArm64) ? "arm64" : "x86_64"
+function lookupSha256(table, version, platform) {
+    // Return the expected SHA256 of the installer for `version` and
+    // `platform` as a list of extra script arguments, or an empty list
+    // if the version is not listed.
+    const row = table.find(
+        (r) => r.version === version && r.platform === platform
+    )
+    if (row) {
+        return [row.sha256]
+    }
+    warning(
+        "No SHA256 checksum is known for EDM " + version + " (" + platform
+        + "); the installer will not be verified."
+    )
+    return []
 }
 
 
@@ -210,7 +210,7 @@ function main() {
     try {
         // Requested EDM version, e.g. '4.1.8' or 'latest'
         const requestedVersion = getInput("edm-version")
-        downloadDir = expandTilde(
+        const downloadDir = expandTilde(
             path.normalize(getInput("download-directory"))
         )
 
@@ -220,21 +220,22 @@ function main() {
         )
         fs.mkdirSync(downloadDir, {recursive: true})
 
+        const table = readInstallerTable()
+        let version = requestedVersion
         if (requestedVersion.toLowerCase() === "latest") {
-            edmVersion = resolveLatestVersion()
-            info("Resolved edm-version 'latest' to " + edmVersion)
-        } else {
-            edmVersion = requestedVersion
+            version = resolveLatestVersion(table, installerPlatform())
+            info("Resolved edm-version 'latest' to " + version)
         }
+        const platform = installerPlatform(version)
+        const sha256 = lookupSha256(table, version, platform)
 
-        if (process.platform == "linux") {
-            installEdmLinux()
-        } else if (process.platform == "darwin") {
-            installEdmOSX()
-        } else if (process.platform == "win32") {
-            installEdmWindows()
+        if (process.platform === "linux") {
+            installEdmLinux(version, downloadDir, sha256)
+        } else if (process.platform === "darwin") {
+            const arch = platform.slice("osx-".length)
+            installEdmOSX(version, downloadDir, arch, sha256)
         } else {
-            setFailed("Unsupported platform.")
+            installEdmWindows(version, downloadDir, sha256)
         }
     }
     catch (error) {
@@ -243,40 +244,39 @@ function main() {
 }
 
 
-function installEdmLinux() {
+function installEdmLinux(version, downloadDir, sha256) {
     // Install EDM for Linux and add it to PATH such that edm can
     // be used directly in GitHub Actions workflows.
     run(
         "bash",
         [
             path.join(__dirname, "install-edm-linux.sh"),
-            edmVersion, downloadDir, ...lookupSha256("linux-x86_64")
+            version, downloadDir, ...sha256
         ]
     )
     addPath(path.join(os.homedir(), "edm", "bin"))
 }
 
 
-function installEdmOSX() {
+function installEdmOSX(version, downloadDir, arch, sha256) {
     // Install EDM for OSX
-    const arch = osxArch()
     run(
         "sh",
         [
             path.join(__dirname, "install-edm-osx.sh"),
-            edmVersion, downloadDir, arch, ...lookupSha256("osx-" + arch)
+            version, downloadDir, arch, ...sha256
         ]
     )
     // no need to update path for OSX
 }
 
 
-function installEdmWindows() {
+function installEdmWindows(version, downloadDir, sha256) {
     // Install EDM for Windows and add it to PATH such that edm can
     // be used directly in GitHub Actions workflows.
     runCmdScript(
         path.join(__dirname, "install-edm-windows.cmd"),
-        [edmVersion, downloadDir, ...lookupSha256("win-x86_64")]
+        [version, downloadDir, ...sha256]
     )
     addPath(path.join("C:\\", "Enthought", "edm"))
 }
