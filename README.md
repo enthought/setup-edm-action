@@ -30,9 +30,9 @@ jobs:
 ## Inputs
 
 - `edm-version`: (Required)
-  A string to specify the EDM version to be installed, e.g. '4.1.7', or
+  A string to specify the EDM version to be installed, e.g. '4.1.8', or
   `latest` to install the newest version that has an installer for the
-  runner's platform (currently 4.1.7 on Linux and Windows and 4.1.3 on macOS,
+  runner's platform (currently 4.1.8 on Linux and Windows and 4.1.3 on macOS,
   as no macOS installers are published for 4.1.4 and later). `latest` is
   resolved from `src/cli_installers.csv`, so it advances when that table is
   updated for a new EDM release. Installers for versions listed in the table
