@@ -39,5 +39,8 @@ jobs:
       - name: Check the requested version is installed
         if: matrix.edm-version != 'latest'
         shell: bash
+        # edm.exe ends lines with CRLF, so strip the CR before comparing.
         run: |
-          edm versions | grep -E '^version: +${{ matrix.edm-version }}$'
+          installed=$(edm versions | tr -d '\r' | awk '$1 == "version:" {print $2}')
+          echo "Installed EDM version: $installed"
+          test "$installed" = '${{ matrix.edm-version }}'
