@@ -43,12 +43,3 @@ jobs:
           $installed = (edm versions | Select-String '^version:\s+(\S+)').Matches[0].Groups[1].Value
           "Installed EDM version: $installed"
           if ($installed -ne '${{ matrix.edm-version }}') { exit 1 }
-      - name: Diagnose edm on PATH from bash (temporary)
-        if: runner.os == 'Windows'
-        continue-on-error: true
-        shell: bash
-        run: |
-          echo "$PATH" | tr ':' '\n' | grep -i enthought || echo "no Enthought entry in bash PATH"
-          ls -la /c/Enthought/edm | head -20
-          command -v edm || echo "bash: edm not found"
-          command -v edm.exe edm.bat edm.cmd || true
